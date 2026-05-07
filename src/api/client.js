@@ -27,8 +27,8 @@ async function request(path, options = {}) {
 }
 
 /**
- * Generic entity factory — produces the same .list / .create / .update / .delete
- * interface that pages previously called on base44.entities.*
+ * Generic entity factory — produces .list / .create / .update / .delete
+ * methods for any REST resource.
  */
 export function createEntity(resource) {
   return {

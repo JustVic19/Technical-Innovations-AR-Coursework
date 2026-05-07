@@ -1,4 +1,4 @@
-import { createEntity, authClient } from './client';
+import { createEntity } from './client';
 
 export const Fault = createEntity('faults');
 export const Site = createEntity('sites');
@@ -9,7 +9,6 @@ export const User = {
   ...createEntity('users'),
   // Override create to use the /invite endpoint for user creation
   create: (data) => {
-    const { createEntity: _, ...rest } = data;
     return fetch('/api/users/invite', {
       method: 'POST',
       headers: {
