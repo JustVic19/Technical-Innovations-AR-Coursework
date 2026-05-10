@@ -102,6 +102,60 @@ for (const [eng, stats] of Object.entries(resolution_by_engineer)) {
   average_resolution_by_engineer[eng] = Math.round((stats.sum / stats.count) * 100) / 100;
 }
 
+// --- Linear Regression for Predictive Trends ---
+const daily_faults_map = {};
+data.forEach(row => {
+  const dateStr = row.date_reported.split(' ')[0]; // E.g., '2024-03-01'
+  if (dateStr) {
+    daily_faults_map[dateStr] = (daily_faults_map[dateStr] || 0) + 1;
+  }
+});
+
+const sorted_dates = Object.keys(daily_faults_map).sort((a,b) => new Date(a) - new Date(b));
+const X = [];
+const Y = [];
+const historical_trend = [];
+
+sorted_dates.forEach((date, index) => {
+  const day_number = index + 1;
+  const fault_count = daily_faults_map[date];
+  X.push(day_number);
+  Y.push(fault_count);
+  historical_trend.push({ day: day_number, date, actual_faults: fault_count });
+});
+
+// Calculate Linear Regression (Least Squares)
+const n = X.length;
+const sum_x = X.reduce((a, b) => a + b, 0);
+const sum_y = Y.reduce((a, b) => a + b, 0);
+const sum_xy = X.reduce((a, b, i) => a + (b * Y[i]), 0);
+const sum_xx = X.reduce((a, b) => a + (b * b), 0);
+
+const slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
+const intercept = (sum_y - slope * sum_x) / n;
+
+// Add predicted line to historical data
+historical_trend.forEach(item => {
+  item.regression_trend = Math.round((slope * item.day + intercept) * 100) / 100;
+});
+
+// Predict next 7 days
+const future_predictions = [];
+const last_date = new Date(sorted_dates[sorted_dates.length - 1]);
+
+for (let i = 1; i <= 7; i++) {
+  const future_day_number = n + i;
+  const predicted_count = Math.max(0, slope * future_day_number + intercept);
+  const future_date = new Date(last_date);
+  future_date.setDate(future_date.getDate() + i);
+  
+  future_predictions.push({
+    day: future_day_number,
+    date: future_date.toISOString().split('T')[0],
+    predicted_faults: Math.round(predicted_count * 100) / 100
+  });
+}
+
 const dashboard_data = {
   total_faults: data.length,
   average_risk_score: Math.round((total_risk / data.length) * 100) / 100,
@@ -122,8 +176,14 @@ const dashboard_data = {
   average_risk_by_area,
   engineer_workload,
   average_resolution_by_engineer,
-  recent_high_risk_faults: high_risk_faults.slice(0, 5)
+  recent_high_risk_faults: high_risk_faults.slice(0, 5),
+  ml_regression: {
+    historical_trend,
+    future_predictions,
+    slope: Math.round(slope * 1000) / 1000,
+    intercept: Math.round(intercept * 1000) / 1000
+  }
 };
 
 fs.writeFileSync(outPath, JSON.stringify(dashboard_data, null, 2));
-console.log('✅ Generated analytics.json');
+console.log('✅ Generated analytics.json with ML Regression');
