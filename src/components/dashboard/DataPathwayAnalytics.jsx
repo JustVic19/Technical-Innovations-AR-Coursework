@@ -41,7 +41,7 @@ export default function DataPathwayAnalytics() {
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <Database className="w-5 h-5 text-primary" />
-        <h2 className="font-display text-xl font-bold">Data Pathway Analytics</h2>
+        <h2 className="font-display text-xl font-bold">Data</h2>
         <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full font-mono border border-primary/20">
           {analyticsData.total_faults} historical records
         </span>
