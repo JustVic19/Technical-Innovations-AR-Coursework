@@ -118,22 +118,59 @@ db.exec(`
   );
 `);
 
-// Auto-seed default users if database is completely empty
+// Auto-seed default users and mock data if database is completely empty
 try {
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-  if (userCount === 0) {
-    console.log('🌱 Empty database detected! Inserting default admin credentials...');
-    const insertUser = db.prepare(`
-      INSERT INTO users (id, email, password_hash, full_name, role, employee_id, clearance_level, created_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `);
+  const faultCount = db.prepare('SELECT COUNT(*) as count FROM faults').get().count;
+  
+  if (userCount === 0 || faultCount === 0) {
+    console.log('🌱 Empty database detected! Inserting default data...');
     
-    insertUser.run(uuidv4(), 'admin@sentinel.local', bcrypt.hashSync('admin123', 10), 'Alex Morgan', 'admin', 'EMP-001', 'L4');
-    insertUser.run(uuidv4(), 'supervisor@sentinel.local', bcrypt.hashSync('super123', 10), 'Jamie Chen', 'supervisor', 'EMP-002', 'L3');
-    insertUser.run(uuidv4(), 'tech@sentinel.local', bcrypt.hashSync('tech123', 10), 'Sam Rivera', 'technician', 'EMP-003', 'L2');
+    if (userCount === 0) {
+      const insertUser = db.prepare(`
+        INSERT INTO users (id, email, password_hash, full_name, role, employee_id, clearance_level, created_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `);
+      
+      insertUser.run(uuidv4(), 'admin@sentinel.local', bcrypt.hashSync('admin123', 10), 'Alex Morgan', 'admin', 'EMP-001', 'L4');
+      insertUser.run(uuidv4(), 'supervisor@sentinel.local', bcrypt.hashSync('super123', 10), 'Jamie Chen', 'supervisor', 'EMP-002', 'L3');
+      insertUser.run(uuidv4(), 'tech@sentinel.local', bcrypt.hashSync('tech123', 10), 'Sam Rivera', 'technician', 'EMP-003', 'L2');
+    }
+
+    if (faultCount === 0) {
+      // Seed Sites
+    const sites = [
+      { id: uuidv4(), name: 'Kings Cross Station', code: 'KX-01', type: 'rail_station', zone: 'public', location: 'London' },
+      { id: uuidv4(), name: 'Victoria Line Tunnel B', code: 'VL-TB', type: 'tunnel', zone: 'high_security', location: 'London' },
+      { id: uuidv4(), name: 'Paddington Metro Hub', code: 'PM-01', type: 'metro_station', zone: 'restricted', location: 'London' },
+    ];
+    const insertSite = db.prepare(`INSERT INTO sites (id, name, code, type, zone, location, created_date) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`);
+    sites.forEach(s => insertSite.run(s.id, s.name, s.code, s.type, s.zone, s.location));
+
+    // Seed Faults
+    const faults = [
+      { title: 'Cracked platform edge tile', description: 'Visible crack spanning 1.2m along platform 3 edge.', category: 'structural_wear', severity: 'high', status: 'reported', site_id: sites[0].id },
+      { title: 'Flickering signal lamp S-47', description: 'Intermittent flickering on signal lamp S-47 near junction point.', category: 'signalling', severity: 'critical', status: 'acknowledged', site_id: sites[0].id },
+      { title: 'Ventilation fan bearing noise', description: 'Abnormal grinding noise from ventilation unit VF-03.', category: 'equipment_degradation', severity: 'medium', status: 'in_progress', site_id: sites[1].id, assigned_to: 'tech@sentinel.local' },
+      { title: 'Rail stress fracture detected', description: 'Ultrasonic scan identified micro-fracture in rail section R-22.', category: 'material_stress', severity: 'critical', status: 'reported', site_id: sites[1].id, predicted_failure_days: 14 },
+    ];
+    const insertFault = db.prepare(`INSERT INTO faults (id, title, description, category, severity, status, site_id, assigned_to, approved_by, resolution_notes, predicted_failure_days, created_date, updated_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', ?), datetime('now'))`);
+    faults.forEach((f, i) => insertFault.run(uuidv4(), f.title, f.description, f.category, f.severity, f.status, f.site_id, f.assigned_to || '', f.approved_by || '', f.resolution_notes || '', f.predicted_failure_days || null, `-${(faults.length - i) * 2} hours`));
+
+    // Seed Tools
+    const tools = [
+      { tool_id: 'TL-001', name: 'Torque Wrench 1/2"', category: 'wrench', serial_number: 'TWR-2024-001', status: 'available', assigned_kit: 'KIT-A' },
+      { tool_id: 'TL-002', name: 'Digital Multimeter', category: 'multimeter', serial_number: 'DMM-2024-005', status: 'in_use', assigned_kit: 'KIT-A', checked_out_by: 'tech@sentinel.local' },
+      { tool_id: 'TL-004', name: 'Cable Cutter 500V', category: 'cutter', serial_number: 'CCT-2024-003', status: 'missing', assigned_kit: 'KIT-A' },
+    ];
+    const insertTool = db.prepare(`INSERT INTO tools (id, tool_id, name, category, serial_number, status, assigned_kit, checked_out_by, created_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`);
+    tools.forEach(t => insertTool.run(uuidv4(), t.tool_id, t.name, t.category, t.serial_number, t.status, t.assigned_kit, t.checked_out_by || ''));
+    }
+
+    console.log('✅ Default data successfully inserted!');
   }
 } catch (error) {
-  console.error('Error auto-seeding default users:', error);
+  console.error('Error auto-seeding data:', error);
 }
 
 export default db;
