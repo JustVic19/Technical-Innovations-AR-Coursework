@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'sentinel.db');
@@ -115,5 +117,23 @@ db.exec(`
     created_date TEXT DEFAULT (datetime('now'))
   );
 `);
+
+// Auto-seed default users if database is completely empty
+try {
+  const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+  if (userCount === 0) {
+    console.log('🌱 Empty database detected! Inserting default admin credentials...');
+    const insertUser = db.prepare(`
+      INSERT INTO users (id, email, password_hash, full_name, role, employee_id, clearance_level, created_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `);
+    
+    insertUser.run(uuidv4(), 'admin@sentinel.local', bcrypt.hashSync('admin123', 10), 'Alex Morgan', 'admin', 'EMP-001', 'L4');
+    insertUser.run(uuidv4(), 'supervisor@sentinel.local', bcrypt.hashSync('super123', 10), 'Jamie Chen', 'supervisor', 'EMP-002', 'L3');
+    insertUser.run(uuidv4(), 'tech@sentinel.local', bcrypt.hashSync('tech123', 10), 'Sam Rivera', 'technician', 'EMP-003', 'L2');
+  }
+} catch (error) {
+  console.error('Error auto-seeding default users:', error);
+}
 
 export default db;
