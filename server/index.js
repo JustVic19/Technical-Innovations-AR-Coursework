@@ -32,10 +32,23 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 404 handler
+// 404 handler for API routes
 app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
+
+// Serve frontend in production
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+if (process.env.NODE_ENV === 'production') {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  app.use(express.static(path.join(__dirname, '..', 'dist')));
+  
+  app.get('*', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '..', 'dist', 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`\n  🛡️  SentinelAR API running at http://localhost:${PORT}`);

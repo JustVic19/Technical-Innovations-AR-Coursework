@@ -1,0 +1,95 @@
+{
+  "total_faults": 120,
+  "average_risk_score": 77.76,
+  "open_faults": 55,
+  "closed_faults": 65,
+  "open_fault_percentage": 46,
+  "most_common_fault": "Electrical",
+  "average_resolution_days": 4.62,
+  "highest_risk_area": "Station",
+  "most_likely_severity": "Medium",
+  "high_risk_count": 65,
+  "overdue_high_risk_count": 31,
+  "resolved_within_target_percentage": 74,
+  "severity_distribution": {
+    "Medium": 60,
+    "Low": 32,
+    "High": 28
+  },
+  "faults_by_weather": {
+    "Dry": 23,
+    "Windy": 19,
+    "Cold": 31,
+    "Rain": 24,
+    "Hot": 23
+  },
+  "faults_by_status": {
+    "Open": 31,
+    "Closed": 65,
+    "In Progress": 24
+  },
+  "faults_by_area": {
+    "Station": 34,
+    "Signal": 17,
+    "Tunnel": 22,
+    "Track": 18,
+    "Electrical Room": 12,
+    "Train": 17
+  },
+  "average_risk_by_area": {
+    "Station": 81.47,
+    "Signal": 79.76,
+    "Tunnel": 78.91,
+    "Track": 75.44,
+    "Electrical Room": 66.42,
+    "Train": 77.29
+  },
+  "engineer_workload": {
+    "undefined": 120
+  },
+  "average_resolution_by_engineer": {
+    "undefined": 4.62
+  },
+  "recent_high_risk_faults": [
+    {
+      "fault_id": "F005",
+      "fault_type": "Mechanical",
+      "location": "Tunnel Section T1",
+      "asset_area": "Tunnel",
+      "risk_score": 100,
+      "status": "Closed"
+    },
+    {
+      "fault_id": "F010",
+      "fault_type": "Signalling",
+      "location": "Signal Box A",
+      "asset_area": "Signal",
+      "risk_score": 100,
+      "status": "In Progress"
+    },
+    {
+      "fault_id": "F013",
+      "fault_type": "Mechanical",
+      "location": "Platform 1",
+      "asset_area": "Station",
+      "risk_score": 100,
+      "status": "Closed"
+    },
+    {
+      "fault_id": "F015",
+      "fault_type": "Electrical",
+      "location": "Escalator Area",
+      "asset_area": "Station",
+      "risk_score": 100,
+      "status": "In Progress"
+    },
+    {
+      "fault_id": "F034",
+      "fault_type": "Structural",
+      "location": "Platform 2",
+      "asset_area": "Station",
+      "risk_score": 100,
+      "status": "Closed"
+    }
+  ]
+}

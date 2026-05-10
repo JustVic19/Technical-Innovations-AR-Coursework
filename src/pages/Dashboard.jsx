@@ -9,6 +9,7 @@ import FaultTrendChart from '@/components/dashboard/FaultTrendChart';
 import SeverityDonut from '@/components/dashboard/SeverityDonut';
 import LiveActivity from '@/components/dashboard/LiveActivity';
 import PredictiveInsights from '@/components/dashboard/PredictiveInsights';
+import DataPathwayAnalytics from '@/components/dashboard/DataPathwayAnalytics';
 import { can } from '@/lib/permissions';
 
 export default function Dashboard() {
@@ -33,21 +34,21 @@ export default function Dashboard() {
   const failedChecks = checks.filter(c => c.result === 'fail').length;
 
   return (
-    <div className="p-6 lg:p-10 max-w-[1600px] mx-auto">
+    <div className="p-6 lg:p-10 max-w-[1600px] mx-auto space-y-8">
       <PageHeader
         eyebrow={`// ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }).toUpperCase()}`}
         title={`Welcome back, ${user.full_name?.split(' ')[0]}`}
         description="Real-time operational overview across all authorised sites and assets."
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatTile label="Open faults" value={open} sublabel={`${faults.length} total logged`} icon={AlertTriangle} accent="primary" />
         <StatTile label="Critical" value={critical} sublabel="Require immediate attention" icon={Activity} accent="danger" />
         <StatTile label="Tools missing" value={missingTools} sublabel={`${tools.length} tracked`} icon={Wrench} accent="info" />
         <StatTile label="Failed checks" value={failedChecks} sublabel={`${checks.length} recent`} icon={ShieldCheck} accent="success" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <FaultTrendChart faults={faults} />
         </div>
@@ -55,18 +56,19 @@ export default function Dashboard() {
       </div>
 
       {can.viewAnalytics(user) && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-          <div className="lg:col-span-2">
-            <PredictiveInsights faults={faults} />
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <PredictiveInsights faults={faults} />
+            </div>
+            <LiveActivity />
           </div>
-          <LiveActivity />
-        </div>
+          <DataPathwayAnalytics />
+        </>
       )}
 
       {!can.viewAnalytics(user) && (
-        <div className="mb-8">
-          <LiveActivity />
-        </div>
+        <LiveActivity />
       )}
     </div>
   );
