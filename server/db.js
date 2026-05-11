@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'sentinel.db');
@@ -148,15 +149,46 @@ try {
     sites.forEach(s => insertSite.run(s.id, s.name, s.code, s.type, s.zone, s.location));
 
     // Seed Faults
-    const faults = [
-      { title: 'Cracked platform edge tile', description: 'Visible crack spanning 1.2m along platform 3 edge.', category: 'structural_wear', severity: 'high', status: 'reported', site_id: sites[0].id },
-      { title: 'Flickering signal lamp S-47', description: 'Intermittent flickering on signal lamp S-47 near junction point.', category: 'signalling', severity: 'critical', status: 'acknowledged', site_id: sites[0].id },
-      { title: 'Ventilation fan bearing noise', description: 'Abnormal grinding noise from ventilation unit VF-03.', category: 'equipment_degradation', severity: 'medium', status: 'in_progress', site_id: sites[1].id, assigned_to: 'tech@sentinel.local' },
-      { title: 'Rail stress fracture detected', description: 'Ultrasonic scan identified micro-fracture in rail section R-22.', category: 'material_stress', severity: 'critical', status: 'reported', site_id: sites[1].id, predicted_failure_days: 14 },
-    ];
-    const insertFault = db.prepare(`INSERT INTO faults (id, title, description, category, severity, status, site_id, assigned_to, approved_by, resolution_notes, predicted_failure_days, created_date, updated_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', ?), datetime('now'))`);
-    faults.forEach((f, i) => insertFault.run(uuidv4(), f.title, f.description, f.category, f.severity, f.status, f.site_id, f.assigned_to || '', f.approved_by || '', f.resolution_notes || '', f.predicted_failure_days || null, `-${(faults.length - i) * 2} hours`));
+    const csvPath = path.resolve(process.cwd(), 'data-pipeline/maintenance_dataset.csv');
+    const csvData = fs.readFileSync(csvPath, 'utf8');
+    const lines = csvData.trim().split('\n');
+    const headers = lines[0].split(',');
+    const dataset = lines.slice(1).map(line => {
+      const values = line.split(',');
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = values[i]);
+      return obj;
+    });
 
+    const categoryMap = { 'Mechanical': 'equipment_degradation', 'Sensor': 'signalling', 'Electrical': 'electrical', 'Software': 'other' };
+    const statusMap = { 'Open': 'reported', 'In Progress': 'in_progress', 'Closed': 'resolved' };
+
+    const insertFault = db.prepare(`INSERT INTO faults (id, marker_id, title, description, category, severity, status, site_id, assigned_to, resolution_notes, predicted_failure_days, created_date, updated_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`);
+    
+    dataset.forEach((row, i) => {
+      const site = sites[i % sites.length];
+      const category = categoryMap[row.fault_type] || 'other';
+      const severity = (row.severity || 'Medium').toLowerCase();
+      const status = statusMap[row.status] || 'reported';
+      const title = `${row.fault_type} Fault in ${row.asset_area}`;
+      const description = `Location: ${row.location}. Weather: ${row.weather_condition}. Tool Required: ${row.tool_required}. Risk Score: ${row.risk_score}.`;
+      const resNotes = row.days_to_resolve ? `Resolved in ${row.days_to_resolve} days.` : '';
+      
+      insertFault.run(
+        row.fault_id || uuidv4(),
+        row.ar_marker_id || '',
+        title,
+        description,
+        category,
+        severity,
+        status,
+        site.id,
+        row.assigned_engineer || '',
+        resNotes,
+        null,
+        row.date_reported || new Date().toISOString()
+      );
+    });
     // Seed Tools
     const tools = [
       { tool_id: 'TL-001', name: 'Torque Wrench 1/2"', category: 'wrench', serial_number: 'TWR-2024-001', status: 'available', assigned_kit: 'KIT-A' },
