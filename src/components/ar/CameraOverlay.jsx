@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Camera, CameraOff, AlertTriangle, ScanLine, Loader2 } from 'lucide-react';
-import { SEVERITY_COLORS } from '@/lib/permissions';
+import { Camera, CameraOff, AlertTriangle, ScanLine, Loader2, Maximize } from 'lucide-react';
 import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import '@tensorflow/tfjs';
 
@@ -44,6 +43,9 @@ export default function CameraOverlay({ faults, onSelect }) {
         videoRef.current.srcObject = s;
         // Wait for video to be ready before starting scan loop
         videoRef.current.onloadedmetadata = () => {
+          // Explicitly set width/height for TensorFlow to read correctly
+          videoRef.current.width = videoRef.current.videoWidth;
+          videoRef.current.height = videoRef.current.videoHeight;
           videoRef.current.play();
           requestRef.current = requestAnimationFrame(scanFrame);
         };
@@ -70,6 +72,10 @@ export default function CameraOverlay({ faults, onSelect }) {
     
     try {
       // TensorFlow allows directly passing the video element for detection
+      // Update dimensions just in case they changed (e.g. rotation)
+      videoRef.current.width = videoRef.current.videoWidth;
+      videoRef.current.height = videoRef.current.videoHeight;
+      
       const detections = await model.detect(videoRef.current);
       
       // Calculate percentages for positioning overlay relative to video dimensions
@@ -96,33 +102,32 @@ export default function CameraOverlay({ faults, onSelect }) {
     requestRef.current = requestAnimationFrame(scanFrame);
   }, [model]);
 
-  // Keep static AR markers as ambient context
-  const anchors = faults.slice(0, 3).map((f, i) => ({
-    fault: f,
-    x: 15 + ((i * 37 + (f.position?.x || 50) * 0.3) % 70),
-    y: 20 + ((i * 23 + (f.position?.y || 50) * 0.4) % 60),
-  }));
+  // Determine container classes based on whether the camera is active
+  const isFullscreen = !!stream;
+  const containerClasses = isFullscreen
+    ? "fixed inset-0 z-50 bg-black flex flex-col"
+    : "rounded-lg border border-border bg-card/60 overflow-hidden";
 
   return (
-    <div className="rounded-lg border border-border bg-card/60 overflow-hidden">
-      <div className="px-5 py-3 border-b border-border flex items-center justify-between flex-wrap gap-2">
+    <div className={containerClasses}>
+      <div className={`px-5 py-3 border-b border-border flex items-center justify-between flex-wrap gap-2 ${isFullscreen ? 'bg-black text-white border-white/10' : ''}`}>
         <div>
-          <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-mono">Live AI Mode</div>
+          <div className={`text-[10px] uppercase tracking-[0.25em] font-mono ${isFullscreen ? 'text-white/60' : 'text-muted-foreground'}`}>Live AI Mode</div>
           <div className="font-display font-semibold flex items-center gap-2">
             TensorFlow Object Recognition 
-            {isModelLoading && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+            {isModelLoading && <Loader2 className={`w-3 h-3 animate-spin ${isFullscreen ? 'text-white/60' : 'text-muted-foreground'}`} />}
           </div>
         </div>
         {stream ? (
-          <Button size="sm" variant="outline" onClick={stop} className="gap-2"><CameraOff className="w-4 h-4" /> Stop</Button>
+          <Button size="sm" variant={isFullscreen ? "secondary" : "outline"} onClick={stop} className="gap-2"><CameraOff className="w-4 h-4" /> Stop AR</Button>
         ) : (
           <Button size="sm" onClick={start} disabled={isModelLoading} className="gap-2">
-            {isModelLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading AI...</> : <><Camera className="w-4 h-4" /> Start camera</>}
+            {isModelLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading AI...</> : <><Maximize className="w-4 h-4" /> Start AR fullscreen</>}
           </Button>
         )}
       </div>
 
-      <div className="relative aspect-[16/9] bg-black overflow-hidden">
+      <div className={`relative bg-black overflow-hidden ${isFullscreen ? 'flex-1' : 'aspect-[16/9]'}`}>
         <video
           ref={videoRef}
           playsInline
@@ -138,7 +143,7 @@ export default function CameraOverlay({ faults, onSelect }) {
               <div className="text-sm text-muted-foreground">
                 {isModelLoading 
                   ? 'Downloading TensorFlow COCO-SSD model (client-side)...'
-                  : 'Start the camera and point it around to identify everyday objects in real-time using on-device AI.'}
+                  : 'Launch full-screen AR to identify everyday objects in real-time using on-device AI.'}
               </div>
             </div>
           </div>
@@ -157,8 +162,8 @@ export default function CameraOverlay({ faults, onSelect }) {
         {/* HUD */}
         {stream && (
           <>
-            <div className="absolute top-3 left-3 text-[10px] font-mono text-primary tracking-widest uppercase flex items-center gap-2 z-30">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> REC · TFJS-DETECT
+            <div className="absolute top-4 left-4 text-xs font-mono text-red-500 tracking-widest uppercase flex items-center gap-2 z-30 drop-shadow-md">
+              <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" /> REC · TFJS-DETECT
             </div>
             
             {/* Live Detected AI Bounding Boxes */}
@@ -184,50 +189,19 @@ export default function CameraOverlay({ faults, onSelect }) {
 
                 {/* HUD Label */}
                 <div className="absolute top-0 left-0 -translate-y-[calc(100%+4px)] bg-black/80 backdrop-blur border border-[#1D9E75] px-2 py-1 flex items-center gap-2 shadow-lg whitespace-nowrap">
-                  <ScanLine className="w-3 h-3 text-[#1D9E75]" />
+                  <ScanLine className="w-4 h-4 text-[#1D9E75]" />
                   <div>
-                    <div className="text-[9px] font-mono uppercase text-[#1D9E75] opacity-80 leading-none mb-0.5">Identified Object</div>
-                    <div className="text-xs font-bold font-mono tracking-tight text-white leading-none capitalize">
+                    <div className="text-[10px] font-mono uppercase text-[#1D9E75] opacity-80 leading-none mb-0.5">Identified Object</div>
+                    <div className="text-sm font-bold font-mono tracking-tight text-white leading-none capitalize">
                       {pred.class} <span className="opacity-50 font-normal ml-1">{pred.score}%</span>
                     </div>
                   </div>
                 </div>
               </motion.div>
             ))}
-
-            {/* Static Fault overlays (ambient context) */}
-            {anchors.map(({ fault, x, y }) => (
-              <ARMarker key={fault.id} fault={fault} x={x} y={y} onClick={() => onSelect(fault)} active={predictions.length > 0} />
-            ))}
           </>
         )}
       </div>
     </div>
-  );
-}
-
-function ARMarker({ fault, x, y, onClick, active }) {
-  const color = SEVERITY_COLORS[fault.severity];
-  return (
-    <motion.button
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: active ? 0.15 : 1 }}
-      onClick={onClick}
-      className="absolute -translate-x-1/2 -translate-y-1/2 text-left transition-opacity duration-300 z-10"
-      style={{ left: `${x}%`, top: `${y}%` }}
-    >
-      <div className="relative flex items-center gap-2">
-        <div
-          className="w-4 h-4 rounded-full pulse-ring border-2 border-background"
-          style={{ background: color }}
-        />
-        <div className="bg-background/80 backdrop-blur border px-2 py-1 rounded font-mono text-[10px] uppercase tracking-wider"
-          style={{ borderColor: color, color }}
-        >
-          <div className="font-bold">{fault.marker_id || fault.title}</div>
-          <div className="text-[9px] opacity-80">{fault.severity} · {(fault.category || '').replace(/_/g, ' ')}</div>
-        </div>
-      </div>
-    </motion.button>
   );
 }
