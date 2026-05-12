@@ -114,7 +114,7 @@ export default function CameraOverlay({ faults, onSelect }) {
         <div>
           <div className={`text-[10px] uppercase tracking-[0.25em] font-mono ${isFullscreen ? 'text-white/60' : 'text-muted-foreground'}`}>Live AI Mode</div>
           <div className="font-display font-semibold flex items-center gap-2">
-            TensorFlow Object Recognition 
+            Object Recognition 
             {isModelLoading && <Loader2 className={`w-3 h-3 animate-spin ${isFullscreen ? 'text-white/60' : 'text-muted-foreground'}`} />}
           </div>
         </div>
@@ -139,11 +139,11 @@ export default function CameraOverlay({ faults, onSelect }) {
           <div className="absolute inset-0 flex items-center justify-center grid-bg">
             <div className="text-center max-w-sm px-6">
               <ScanLine className={`w-10 h-10 mx-auto mb-3 ${isModelLoading ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} />
-              <div className="font-display text-lg mb-1">{isModelLoading ? 'Loading AI Model...' : 'Live Object Recognition'}</div>
+              <div className="font-display text-lg mb-1">{isModelLoading ? 'AR Loading' : 'Live Fault Detection'}</div>
               <div className="text-sm text-muted-foreground">
                 {isModelLoading 
-                  ? 'Downloading TensorFlow COCO-SSD model (client-side)...'
-                  : 'Launch full-screen AR to identify everyday objects in real-time using on-device AI.'}
+                  ? 'Downloading files for the first time...'
+                  : ''}
               </div>
             </div>
           </div>
