@@ -2,6 +2,17 @@
 
 An AR-assisted fault detection and maintenance management system for transport infrastructure. Built with React + Express + SQLite — fully local, self-hosted, no external services required.
 
+**Live Demo:** [https://technical-innovations-ar-coursework.onrender.com](https://technical-innovations-ar-coursework.onrender.com)
+*(Note: As this is hosted on a free Render tier, the backend may take 30-50 seconds to spin up from sleep).*
+
+---
+
+## Key Features
+- **Live AR Fault Detection:** Uses on-device TensorFlow.js (COCO-SSD) to scan, identify, and track physical objects in real-time via the browser camera.
+- **Machine Learning Analytics:** Integrated Node.js linear regression model generating 7-day predictive failure risk forecasts.
+- **True Dataset Integration:** The SQLite database is automatically seeded using the `maintenance_dataset.csv` pipeline, allowing the frontend to natively reflect real historical faults.
+- **Role-Based Access Control:** Secure JWT authentication with Admin, Supervisor, and Technician roles.
+
 ---
 
 ## Prerequisites
